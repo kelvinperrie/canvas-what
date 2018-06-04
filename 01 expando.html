@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <script type="application/javascript">
+        var fontSize = 40;
+        var font = "40px serif";
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth - 20;
+            canvas.height = window.innerHeight - 20;
+
+            /**
+                * Your drawings need to be inside this function otherwise they will be reset when
+                * you resize the browser window and the canvas goes will be cleared.
+                */
+            draw();
+        }
+
+        function draw() {
+            var canvas = document.getElementById('canvas');
+            if (canvas.getContext) {
+                var ctx = canvas.getContext('2d');
+
+                ctx.font = fontSize + "px serif";
+                ctx.textBaseline = "hanging";
+                ctx.strokeText("Hello", 0, 0);
+
+                fontSize = fontSize + 10;
+                setTimeout(function(){ draw(); }, 20);
+            }
+        }
+    </script>
+    <style type="text/css">
+        body {
+            margin: 0;
+        }
+
+        canvas {
+            border: 1px solid #808080;
+        }
+    </style>
+</head>
+<body onload="resizeCanvas();">
+    <canvas id="canvas"></canvas>
+</body>
+</html>

@@ -1,0 +1,84 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <script src="jquery-3-3-1.js" type="text/javascript"></script>
+    <script type="application/javascript">
+    var fontSize = 40;
+    var font = "40px serif";
+
+
+    $(document).ready(function() {
+
+        $("#canvas").mousemove(function( event ) {
+            model1.Update(event);
+        });
+    });
+
+    var model1 = new function() {
+        var self = this;
+
+        self.startFontSize = 30;
+        self.currentFontSize = 30;
+        self.posLeft = 0;
+        self.horizontalScale = 1;
+        self.verticalScale = 1;
+
+        self.Update = function(event) {
+            var halfWidth = canvas.width / 2;  //oops
+            var horizontalDistanceFromCenter = halfWidth - event.pageX;
+            self.horizontalScale = horizontalDistanceFromCenter / 100;
+
+            var halfHeight = canvas.height / 2;  //oops
+            var verticalDistanceFromCenter = halfHeight - event.pageY;
+            self.verticalScale = verticalDistanceFromCenter / 100;
+
+
+        }
+    }
+
+
+    function resizeCanvas() {
+        var canvas = document.getElementById('canvas');
+        canvas.width = window.innerWidth - 20;
+        canvas.height = window.innerHeight - 20;
+
+        draw();
+    }
+
+
+
+    function draw() {
+        var canvas = document.getElementById('canvas');
+        if (canvas.getContext) {
+            var ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.save();
+
+            ctx.translate(canvas.width / 2, canvas.height / 2);
+
+            ctx.scale(model1.horizontalScale, model1.verticalScale);
+            ctx.font = "50px serif";
+            ctx.textAlign="center";
+            ctx.textBaseline = "hanging";
+            ctx.strokeText("Hello", 0, 0);
+
+            ctx.restore();
+            setTimeout(function(){ draw(); }, 20);
+        }
+    }
+    </script>
+    <style type="text/css">
+        body {
+            margin: 0;
+        }
+
+        canvas {
+            border: 1px solid #808080;
+        }
+    </style>
+</head>
+<body onload="resizeCanvas();">
+    <canvas id="canvas"></canvas>
+</body>
+</html>

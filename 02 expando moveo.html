@@ -1,0 +1,97 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <script src="jquery-3-3-1.js" type="text/javascript"></script>
+    <script type="application/javascript">
+    var fontSize = 40;
+    var font = "40px serif";
+
+
+    $(document).ready(function() {
+
+        $("#canvas").mousemove(function( event ) {
+            model1.Update(event);
+            model2.Update(event);
+        });
+    });
+
+    var model1 = new function() {
+        var self = this;
+
+        self.startFontSize = 30;
+        self.currentFontSize = 30;
+        self.posLeft = 0;
+
+        self.Update = function(event) {
+
+            self.currentFontSize = event.pageX / 2;
+        }
+    }
+    var model2 = new function() {
+        var self = this;
+
+        self.startFontSize = 30;
+        self.currentFontSize = 30;
+        self.posLeft = 0;
+
+        self.Update = function(event) {
+
+            self.currentFontSize = event.pageY / 2;
+        }
+    }
+
+
+    function resizeCanvas() {
+        var canvas = document.getElementById('canvas');
+        canvas.width = window.innerWidth - 20;
+        canvas.height = window.innerHeight - 20;
+
+        draw();
+    }
+
+
+
+    function draw() {
+        var canvas = document.getElementById('canvas');
+        if (canvas.getContext) {
+            var ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.save();
+
+            var halfWidth = canvas.width / 2;
+
+            var currentFontSize = model1.currentFontSize;
+
+            ctx.font = currentFontSize + "px serif";
+            ctx.textAlign="center";
+            ctx.textBaseline = "hanging";
+            ctx.strokeText("Hello", halfWidth, 50);
+
+            var currentFontSize = model2.currentFontSize;
+
+            ctx.font = currentFontSize + "px serif";
+            ctx.textAlign="center";
+            ctx.textBaseline = "hanging";
+            ctx.strokeText("Hello", halfWidth, 200);
+        
+            //ctx.restore();
+
+            setTimeout(function(){ draw(); }, 20);
+        }
+    }
+    </script>
+    <style type="text/css">
+        body {
+            margin: 0;
+        }
+
+        canvas {
+            border: 1px solid #808080;
+        }
+    </style>
+</head>
+<body onload="resizeCanvas();">
+    <canvas id="canvas"></canvas>
+</body>
+</html>
