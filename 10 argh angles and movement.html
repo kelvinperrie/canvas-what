@@ -44,7 +44,8 @@
             if(direction == "f") {
                 self.currentSpeed = self.currentSpeed + self.speedChangeIncrement;
             } else if (direction === "s") {
-                self.currentSpeed = (self.currentSpeed - self.speedChangeIncrement) < 0 ? 0 : self.currentSpeed - self.speedChangeIncrement;
+                //self.currentSpeed = (self.currentSpeed - self.speedChangeIncrement) < 0 ? 0 : self.currentSpeed - self.speedChangeIncrement;
+                self.currentSpeed = self.currentSpeed - self.speedChangeIncrement;
             }
         console.log(self.currentSpeed);
         }
