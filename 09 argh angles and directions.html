@@ -1,0 +1,118 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <script src="jquery-3-3-1.js" type="text/javascript"></script>
+    <script type="application/javascript">
+
+    var ship = new Image();
+    ship.src = 'ship-at-zero.png';
+
+
+    $(function(){
+        $('html').keydown(function(e){
+            model.ProcessInput(e.which);
+        });
+    });
+
+    var model = new function() {
+        var self = this;
+
+        self.currentX = 200;
+        self.currentY = 200;
+        self.currentAngle = 0;
+        self.angleChangeIncrement = 10;
+
+        self.ProcessInput = function(input) {
+            if(input === 37) {
+                // left arrow
+                self.UpdateAngle("cc");
+            } else if (input === 39) {
+                // right arrow
+                self.UpdateAngle("cw");
+            }
+        }
+        self.UpdateAngle = function(direction) {
+            if(direction === "cc") {
+                console.log("going clockwise " + self.angleChangeIncrement);
+                self.currentAngle = self.currentAngle - self.angleChangeIncrement;
+                console.log("new angle might be " + self.currentAngle);
+                if(self.currentAngle < 0) {
+                    self.currentAngle = 360 + self.currentAngle;
+                }
+                console.log("new angle IS " + self.currentAngle);
+            }
+            if(direction === "cw") {
+                console.log("going clockwise " + self.angleChangeIncrement);
+                self.currentAngle = self.currentAngle + self.angleChangeIncrement;
+                console.log("new angle might be " + self.currentAngle);
+                if(self.currentAngle > 360) {
+                    self.currentAngle = self.currentAngle - 360;
+                }
+                console.log("new angle IS " + self.currentAngle);
+            }
+            console.log("updated angle to " + self.currentAngle);
+        }
+
+    }
+
+
+    function drawTarget(ctx) {
+        ctx.save();
+        // translate to in front of the ship
+        var angleInRads = model.currentAngle * (Math.PI / 180);
+        var distance = 50;
+        // what is the adjacent (X)
+        var adjacent = Math.cos(angleInRads) * distance;
+        // what is the opposite (Y)
+        var opposite = Math.sin(angleInRads) * distance;
+
+        ctx.translate(adjacent, opposite);
+
+        ctx.strokeText("o", 0, 0);
+        ctx.restore();
+    }
+
+    function draw() {
+        var canvas = document.getElementById('canvas');
+        if (canvas.getContext) {
+
+            //var angleRadians = Math.atan2(p2.y - p1.y, p2.x - p1.x);
+
+            var ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            ctx.save();
+
+            ctx.translate(model.currentX, model.currentY);
+            counter = 0;
+            ctx.strokeText("x", 0, 0);
+
+            ctx.save();
+            ctx.rotate(model.currentAngle * Math.PI / 180);
+            ctx.drawImage(ship,-20,-20);
+            ctx.restore();
+
+            drawTarget(ctx);
+
+            ctx.restore();
+
+            setTimeout(function(){ draw(); }, 20);
+        }
+    }
+
+    </script>
+    <style type="text/css">
+        body {
+            margin: 0;
+        }
+
+        canvas {
+            border: 1px solid #808080;
+        }
+    </style>
+</head>
+<body onload="draw();">
+    <canvas id="canvas" width="400" height="400"></canvas>
+</body>
+</html>
