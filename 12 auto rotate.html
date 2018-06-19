@@ -1,0 +1,201 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <script src="jquery-3-3-1.js" type="text/javascript"></script>
+    <script type="application/javascript">
+
+        var ship = new Image();
+        ship.src = 'ship-at-zero.png';
+
+
+        $(function(){
+            $('html').keydown(function(e){
+                model.ProcessInput(e.which);
+            });
+        });
+
+
+        var shot = function(startX, startY, angle) {
+            var self = this;
+
+            self.currentX = startX;
+            self.currentY = startY;
+            self.startX = startX;
+            self.startY = startY;
+            self.currentAngle = angle;
+            self.movementIncrement = 30;
+
+            self.Move = function() {
+                // from the current position move in the angle specifed the amount given by the momentIncrement
+
+                var angleInRads = self.currentAngle * (Math.PI / 180);
+                var distance = self.movementIncrement;
+                // what is the adjacent (X)
+                var adjacent = Math.cos(angleInRads) * distance;
+                // what is the opposite (Y)
+                var opposite = Math.sin(angleInRads) * distance;
+                self.currentX = self.currentX + adjacent;
+                self.currentY = self.currentY + opposite;
+                setTimeout(function(){ self.Move(); }, 100);
+            }
+
+            self.IsOffScreen = function(maxX, maxY) {
+                return ((self.currentX < 0 || self.currentX > maxX) || (self.currentY < 0 || self.currentY > maxY));
+            }
+        }
+
+        var model = new function() {
+            var self = this;
+
+            self.currentX = 200;
+            self.currentY = 200;
+            self.currentAngle = 0;
+            self.currentTurn = 0;
+            self.currentDirection = "";
+            self.angleChangeIncrement = 5;
+            self.shots = [];
+            self.maxX = 400;
+            self.maxY = 400;
+
+            self.ProcessInput = function(input) {
+                if(input === 32) {
+                    // space
+                    self.TakeAShot();
+                } else if(input === 37) {
+                    // left arrow
+                    self.ProcessDirectionInput("cc");
+                } else if (input === 39) {
+                    // right arrow
+                    self.ProcessDirectionInput("cw");
+                }
+            }
+            self.ProcessDirectionInput = function(direction) {
+                    if(self.currentDirection === direction || self.currentDirection === "") {
+                        self.currentTurn = self.currentTurn + self.angleChangeIncrement;
+                        if(self.currentDirection === "") {
+                            self.currentDirection = direction;
+                        }
+                    } else {
+                        self.currentTurn = self.currentTurn - self.angleChangeIncrement;
+                    }
+            }
+            self.UpdateAngle = function(direction) {
+                if(direction === "cc") {
+                    console.log("going clockwise " + self.currentTurn);
+                    self.currentAngle = self.currentAngle - self.currentTurn;
+                    console.log("new angle might be " + self.currentAngle);
+                    if(self.currentAngle < 0) {
+                        self.currentAngle = 360 + self.currentAngle;
+                    }
+                    console.log("new angle IS " + self.currentAngle);
+                }
+                if(direction === "cw") {
+                    console.log("going clockwise " + self.currentTurn);
+                    self.currentAngle = self.currentAngle + self.currentTurn;
+                    console.log("new angle might be " + self.currentAngle);
+                    if(self.currentAngle > 360) {
+                        self.currentAngle = self.currentAngle - 360;
+                    }
+                    console.log("new angle IS " + self.currentAngle);
+                }
+                console.log("updated angle to " + self.currentAngle);
+            }
+            self.Turn = function() {
+                if(self.currentDirection !== "") {
+                    self.UpdateAngle(self.currentDirection);
+                }
+                setTimeout(function(){ self.Turn(); }, 50);
+            }
+            self.Turn();
+
+            self.TakeAShot = function() {
+                console.log("pewpew: " + self.currentX + ", " + self.currentY + ", " + self.currentAngle);
+                var newShot = new shot(self.currentX, self.currentY, self.currentAngle);
+                newShot.Move();
+                self.shots.push(newShot);
+                self.RemoveOldShots();
+            }
+            self.RemoveOldShots = function() {
+                for(var i=self.shots.length-1;i >= 0;i--) {
+                    if(self.shots[i].IsOffScreen(self.maxX, self.maxY)) {
+                        self.shots.splice(i, 1);
+                    }
+                }
+            }
+        }
+
+
+        function drawTarget(ctx) {
+            ctx.save();
+            // translate to in front of the ship
+            var angleInRads = model.currentAngle * (Math.PI / 180);
+            var distance = 50;
+            // what is the adjacent (X)
+            var adjacent = Math.cos(angleInRads) * distance;
+            // what is the opposite (Y)
+            var opposite = Math.sin(angleInRads) * distance;
+
+            ctx.translate(adjacent, opposite);
+
+            ctx.strokeText("o", 0, 0);
+            ctx.restore();
+        }
+        function drawShots(ctx) {
+            ctx.save();
+            for(var i=0;i< model.shots.length;i++) {
+                ctx.save();
+                var shot = model.shots[i];
+                ctx.translate(shot.currentX, shot.currentY);
+                ctx.strokeText("x", 0, 0);
+                ctx.restore();
+            }
+            ctx.restore();
+        }
+
+        function draw() {
+            var canvas = document.getElementById('canvas');
+            if (canvas.getContext) {
+
+                //var angleRadians = Math.atan2(p2.y - p1.y, p2.x - p1.x);
+
+                var ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                ctx.save();
+
+                ctx.translate(model.currentX, model.currentY);
+                counter = 0;
+                ctx.strokeText("x", 0, 0);
+
+                ctx.save();
+                ctx.rotate(model.currentAngle * Math.PI / 180);
+                ctx.drawImage(ship,-20,-20);
+                ctx.restore();
+
+                drawTarget(ctx);
+
+
+                ctx.restore();
+
+                drawShots(ctx);
+
+                setTimeout(function(){ draw(); }, 20);
+            }
+        }
+
+    </script>
+    <style type="text/css">
+        body {
+            margin: 0;
+        }
+
+        canvas {
+            border: 1px solid #808080;
+        }
+    </style>
+</head>
+<body onload="draw();">
+    <canvas id="canvas" width="400" height="400"></canvas>
+</body>
+</html>
