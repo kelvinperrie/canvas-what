@@ -1,0 +1,359 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <script src="jquery-3-3-1.js" type="text/javascript"></script>
+    <script type="application/javascript">
+
+
+        $(function(){
+            $('html').keydown(function(e){
+                model.ProcessInput(e.which);
+            });
+        });
+
+
+        // model to hold data about evvvveerrrything
+        var universe = function() {
+            var self = this;
+
+            self.maxX = 400;                // canvas size - need a better place for this
+            self.maxY = 400;
+            self.entities = []; // everything that exists I guess
+
+            self.Draw = function(ctx) {
+                for(var i=0;i< self.entities.length;i++) {
+                    if (typeof(self.entities[i].Draw) == "function")
+                    {
+                        self.entities[i].Draw(ctx);
+                    }
+                }
+            }
+
+            self.ProcessInput = function(input) {
+                for(var i=0;i< self.entities.length;i++) {
+                    if (typeof(self.entities[i].ProcessInput) == "function")
+                    {
+                        self.entities[i].ProcessInput(input);
+                    }
+                }
+            }
+        }
+
+
+        // model to represent a shot fired by something
+        var shot = function(startX, startY, angle) {
+            var self = this;
+
+            self.startX = startX;
+            self.startY = startY;
+            self.currentX = startX;
+            self.currentY = startY;
+            self.wrapXDistance = 0;
+            self.wrapYDistance = 0;
+            self.currentAngle = angle;      // what is the angle we're traveling in
+            self.movementIncrement = 30;    // how much distance do we go each time we move
+            self.animateCounter = 0;
+            self.shotImage = new Image();
+            self.destroyed = false;
+            self.maxDistance = 300;
+            self.distanceTravelledX = 0;
+            self.distanceTravelledY = 0;
+            self.width = 10;                // how big are we
+            self.height = 10;
+
+            self.Move = function() {
+                // from the current position move in the angle specifed the amount given by the movementIncrement
+
+                var angleInRads = self.currentAngle * (Math.PI / 180);
+                var distance = self.movementIncrement;
+                // what is the adjacent (X)
+                var adjacent = Math.cos(angleInRads) * distance;
+                // what is the opposite (Y)
+                var opposite = Math.sin(angleInRads) * distance;
+                self.AddDistanceTravelled(adjacent,opposite);
+                self.currentX = self.currentX + adjacent;
+                self.currentY = self.currentY + opposite;
+
+                // if we've gone completely off an edge then move us to the opposite edge
+                if(self.currentX > model.maxX) {
+                    self.currentX = 0 - self.width;
+                }
+                if(self.currentX < (0 - self.width)) {
+                    self.currentX = model.maxX;
+                }
+                if(self.currentY > model.maxY) {
+                    self.currentY = 0 - self.height;
+                }
+                if(self.currentY < (0 - self.height)) {
+                    self.currentY = model.maxY;
+                }
+
+                setTimeout(function(){ self.Move(); }, 100);
+            }
+            self.IsExpended = function() {
+                console.log("distance travelled is " + self.DistanceTravelled());
+                return self.DistanceTravelled() > self.maxDistance;
+            }
+            self.DistanceTravelled = function() {
+                return  Math.sqrt(self.distanceTravelledX * self.distanceTravelledX + self.distanceTravelledY * self.distanceTravelledY);
+            }
+            self.AddDistanceTravelled = function(X, Y) {
+                self.distanceTravelledX = self.distanceTravelledX + X;
+                self.distanceTravelledY = self.distanceTravelledY + Y;
+            }
+
+            self.IsOffScreen = function() {
+                return ((self.currentX < 0 || self.currentX > model.maxX) || (self.currentY < 0 || self.currentY > model.maxY));
+            }
+
+            self.Draw = function(ctx) {
+                ctx.save();
+                ctx.translate(self.currentX, self.currentY);
+                //ctx.strokeText("x", 0, 0);
+                ctx.drawImage(self.shotImage,-1 * self.width,-1 * self.height);
+                ctx.restore();
+            }
+            self.AnimateMe = function() {
+                self.animateCounter = self.animateCounter + 1;
+                if(self.animateCounter > 3) {
+                    self.animateCounter = 1;
+                }
+                self.shotImage.src = 'shot-f'+self.animateCounter+'.jpg';
+                console.log('now '+self.shotImage.src);
+                if(!self.destroyed) {
+                    setTimeout(function(){ self.AnimateMe(); }, 100);
+                }
+            }
+            self.Destroy = function() {
+                self.destroyed = true;
+            }
+            self.AnimateMe();
+        }
+
+        // model to represent a ship
+        var ship = function() {
+            var self = this;
+
+            self.shipImage = new Image();
+            self.shipImage.src = 'ship-at-zero-red.png';
+
+            self.currentX = 200;
+            self.currentY = 200;
+            self.currentAngle = 0;          // the angle the ship is facing in degrees
+            self.currentTurn = 0;           // how hard we are turning i.e. increases the more a direction key is pressed
+            self.currentDirection = "";     // current direction we're turning; either cw, cc, or empty
+            self.angleChangeIncrement = 5;  // how much our rotation changes at each turn
+            self.currentSpeed = 2;          // how fast we're moving
+            self.speedChangeIncrement = 2;  // how much our speed changes when accelerating or decelerating
+            self.shots = [];                // an array of shots fired
+            self.width = 40;                // how big are we
+            self.height = 40;
+
+
+            self.keyLeft = 37;          // define the key code that turns us left
+            self.keyRight = 39;
+            self.keyTakeAShot = 32;     // define the key code that makes us do some shooting
+            self.keyAccelerate = 38;
+            self.keyDeccelerate = 40;
+
+            // takes keyboard input and interprets it as an action on the model
+            self.ProcessInput = function(input) {
+                if(input === self.keyTakeAShot) {
+                    // fire the guns
+                    self.TakeAShot();
+                } else if(input === self.keyLeft) {
+                    // turn left
+                    self.ProcessDirectionInput("cc");
+                } else if (input === self.keyAccelerate) {
+                    // go faster
+                    self.UpdateSpeed("f");
+                } else if (input === self.keyRight) {
+                    // turn right
+                    self.ProcessDirectionInput("cw");
+                }else if (input === self.keyDeccelerate) {
+                    // go slower
+                    self.UpdateSpeed("s");
+                }
+            }
+            // allows the user to update the speed of the ship
+            self.UpdateSpeed = function(direction) {
+                if(direction == "f") {
+                    self.currentSpeed = self.currentSpeed + self.speedChangeIncrement;
+                } else if (direction === "s") {
+                    self.currentSpeed = self.currentSpeed - self.speedChangeIncrement;
+                }
+            }
+            // allows the user to input which direction they want to rotate the ship
+            self.ProcessDirectionInput = function(direction) {
+                    if(self.currentDirection === direction || self.currentDirection === "") {
+                        self.currentTurn = self.currentTurn + self.angleChangeIncrement;
+                        if(self.currentDirection === "") {
+                            self.currentDirection = direction;
+                        }
+                    } else {
+                        self.currentTurn = self.currentTurn - self.angleChangeIncrement;
+                    }
+            }
+            // given a direction of rotation, rotate the ship in that direction
+            self.UpdateAngle = function(direction) {
+                if(direction === "cc") {
+                    self.currentAngle = self.currentAngle - self.currentTurn;
+                    if(self.currentAngle < 0) {
+                        self.currentAngle = 360 + self.currentAngle;
+                    }
+                }
+                if(direction === "cw") {
+                    self.currentAngle = self.currentAngle + self.currentTurn;
+                    if(self.currentAngle > 360) {
+                        self.currentAngle = self.currentAngle - 360;
+                    }
+                }
+            }
+            // auto updates the ships rotation if the ship has been set to rotate
+            self.Turn = function() {
+                if(self.currentDirection !== "") {
+                    self.UpdateAngle(self.currentDirection);
+                }
+                setTimeout(function(){ self.Turn(); }, 50);
+            }
+            self.Turn();
+
+            // updates the ships position (moves the ship!) based on the direction it is facing and the current speed
+            self.UpdatePosition  = function() {
+                if(self.currentSpeed !==0) {
+                    var angleInRads = self.currentAngle * (Math.PI / 180);
+                    var distance = self.currentSpeed;
+                    // what is the adjacent (X)
+                    var adjacent = Math.cos(angleInRads) * distance;
+                    // what is the opposite (Y)
+                    var opposite = Math.sin(angleInRads) * distance;
+                    self.currentX = self.currentX + adjacent;
+                    self.currentY = self.currentY + opposite;
+
+                    // if we've gone completely off an edge then move us to the opposite edge
+                    if(self.currentX > model.maxX) {
+                        self.currentX = 0 - self.width;
+                    }
+                    if(self.currentX < (0 - self.width)) {
+                        self.currentX = model.maxX;
+                    }
+                    if(self.currentY > model.maxY) {
+                        self.currentY = 0 - self.height;
+                    }
+                    if(self.currentY < (0 - self.height)) {
+                        self.currentY = model.maxY;
+                    }
+                }
+                setTimeout(function(){ self.UpdatePosition(); }, 50);
+            }
+            self.UpdatePosition();
+
+            // allow the ship to fire a shot
+            self.TakeAShot = function() {
+                var newShot = new shot(self.currentX+5, self.currentY+5, self.currentAngle);
+                newShot.Move();
+                self.shots.push(newShot);
+                //self.RemoveOldShots();
+            }
+            // remove any shots no longer visible on screen
+            self.RemoveOldShots = function() {
+                console.log("there are " + self.shots.length + " shots");
+                for(var i=self.shots.length-1;i >= 0;i--) {
+                    //if(self.shots[i].IsOffScreen()) {
+                    if(self.shots[i].IsExpended()) {
+                        console.log("removing shot at " + i);
+                        self.shots[i].Destroy();
+                        self.shots[i] = null;
+                        self.shots.splice(i, 1);
+                    }
+                }
+                setTimeout(function(){ self.RemoveOldShots(); }, 50);
+            }
+            self.RemoveOldShots();
+
+            // draw the ship on the given context
+            self.Draw = function(ctx) {
+                ctx.save();
+
+                ctx.translate(self.currentX, self.currentY);
+
+                ctx.save();
+                ctx.rotate(self.currentAngle * Math.PI / 180);
+                ctx.drawImage(self.shipImage,-1 * (self.width/2),-1 * (self.height/2));
+                ctx.restore();
+
+                self.DrawTarget(ctx);
+
+                ctx.restore();
+                self.DrawShots(ctx);
+            }
+            self.DrawShots = function(ctx) {
+                ctx.save();
+                for(var i=0;i< self.shots.length;i++) {
+                    self.shots[i].Draw(ctx);
+                }
+                ctx.restore();
+            }
+            self.DrawTarget = function (ctx) {
+                ctx.save();
+                // translate to in front of the ship
+                var angleInRads = self.currentAngle * (Math.PI / 180);
+                var distance = 50;
+                // what is the adjacent (X)
+                var adjacent = Math.cos(angleInRads) * distance;
+                // what is the opposite (Y)
+                var opposite = Math.sin(angleInRads) * distance;
+
+                ctx.translate(adjacent, opposite);
+                ctx.translate(-3, 2);
+
+                ctx.strokeText("o", 0, 0);
+                ctx.restore();
+            }
+        }
+
+
+        var model = new universe();
+
+        var ship1 = new ship();
+        model.entities.push(ship1);
+
+        var ship2 = new ship();
+        ship2.currentX = 100;
+        ship2.keyLeft = 65;
+        ship2.keyRight = 68;
+        ship2.keyTakeAShot = 81;
+        ship2.keyAccelerate = 87;
+        ship2.keyDeccelerate = 83;
+        ship2.shipImage.src = 'ship-at-zero-blue.png';
+        model.entities.push(ship2);
+
+
+        function draw() {
+            var canvas = document.getElementById('canvas');
+            if (canvas.getContext) {
+                var ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                model.Draw(ctx);
+
+                setTimeout(function(){ draw(); }, 20);
+            }
+        }
+
+    </script>
+    <style type="text/css">
+        body {
+            margin: 0;
+        }
+
+        canvas {
+            border: 1px solid #808080;
+        }
+    </style>
+</head>
+<body onload="draw();">
+    <canvas id="canvas" width="400" height="400"></canvas>
+</body>
+</html>
