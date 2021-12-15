@@ -21,8 +21,8 @@
         var universe = function() {
             var self = this;
 
-            self.maxX = 400;                // canvas size - need a better place for this
-            self.maxY = 400;
+            self.maxX = 800;                // canvas size - need a better place for this
+            self.maxY = 800;
             self.entities = []; // everything that exists I guess
 
             self.Draw = function(ctx) {
@@ -221,8 +221,10 @@
             self.currentTurn = 0;           // how hard we are turning i.e. increases the more a direction key is pressed
             self.currentDirection = "";     // current direction we're turning; either cw, cc, or empty
             self.angleChangeIncrement = 5;  // how much our rotation changes at each turn
+            self.maxTurn = 40;
             self.currentSpeed = 2;          // how fast we're moving
             self.speedChangeIncrement = 2;  // how much our speed changes when accelerating or decelerating
+            self.maxSpeed = 20;
             self.shots = [];                // an array of shots fired
             self.width = 40;                // how big are we
             self.height = 40;
@@ -273,8 +275,14 @@
             self.UpdateSpeed = function(direction) {
                 if(direction == "f") {
                     self.currentSpeed = self.currentSpeed + self.speedChangeIncrement;
+                    if(self.currentSpeed > self.maxSpeed) {
+                        self.currentSpeed = self.maxSpeed;
+                    }
                 } else if (direction === "s") {
                     self.currentSpeed = self.currentSpeed - self.speedChangeIncrement;
+                    if(self.currentSpeed < (self.maxSpeed * -1)) {
+                        self.currentSpeed = (self.maxSpeed * -1);
+                    }
                 }
             }
             // allows the user to input which direction they want to rotate the ship
@@ -284,8 +292,14 @@
                         if(self.currentDirection === "") {
                             self.currentDirection = direction;
                         }
+                        if(self.currentTurn > self.maxTurn) {
+                            self.currentTurn = self.maxTurn;
+                        }
                     } else {
                         self.currentTurn = self.currentTurn - self.angleChangeIncrement;
+                        if(self.currentTurn < (self.maxTurn * -1)) {
+                            self.currentTurn = (self.maxTurn * -1);
+                        }
                     }
             }
             // given a direction of rotation, rotate the ship in that direction
@@ -453,7 +467,8 @@
 
                 model.Draw(ctx);
 
-                setTimeout(function(){ draw(); }, 20);
+                window.requestAnimationFrame(draw);
+                //setTimeout(function(){ draw(); }, 20);
             }
         }
 
@@ -493,7 +508,7 @@
             <div>slower = s</div>
             <div>shoot / revive = q</div>
         </div>
-        <canvas id="canvas" width="400" height="400"></canvas>
+        <canvas id="canvas" width="800" height="800"></canvas>
         <div class="player-details">
             <div class="title">Player 2</div>
             <div>left = 1</div>
